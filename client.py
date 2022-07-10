@@ -1,12 +1,11 @@
 import sys
 import signal
 import socket
+import hashlib
 import protocolo
 
-
 from enums import *
-
-
+from config import settings
 
 class Client:
     def __init__(self, name, ip, port):
@@ -28,7 +27,7 @@ class Client:
         self.socket.send(message)
 
     def receive(self):
-        return self.socket.recv(1024).decode()
+        return self.socket.recv(settings.get('geral.tamanho_fatia')).decode()
 
     def close(self):
         self.socket.close()
@@ -48,24 +47,33 @@ class Client:
         arquivo_nome = arquivo.split('/')[-1]
         arquivo_tamanho = len(arquivo_bytes)
 
+        sha256_hash = hashlib.sha256()
+        with open(arquivo, 'rb') as f:
+            for byte_block in iter(lambda: f.read(settings.get('geral.tamanho_fatia')), b''):
+                sha256_hash.update(byte_block)
+
+        arquivo_hash = sha256_hash.hexdigest()
+
         solicitacao = protocolo.encapsular_solicitacao_deposito_arquivo(
             qtd_replicas=replicas,
             nome_arquivo=arquivo_nome,
+            hash_arquivo=arquivo_hash,
             tamanho_arquivo=arquivo_tamanho
         )
         self.send(solicitacao)
 
-        partes = int(arquivo_tamanho / 1024)
-        resto = arquivo_tamanho % 1024
+        partes = int(arquivo_tamanho / settings.get('geral.tamanho_fatia'))
+        resto = arquivo_tamanho % settings.get('geral.tamanho_fatia')
         if resto > 0:
             partes += 1
 
         for i in range(partes):
             if i == partes - 1:
-                parte = arquivo_bytes[i * 1024:i * 1024 + resto]
+                parte = arquivo_bytes[i * settings.get('geral.tamanho_fatia'):i * settings.get('geral.tamanho_fatia') + resto]
             else:
-                parte = arquivo_bytes[i * 1024:i * 1024 + 1024]
+                parte = arquivo_bytes[i * settings.get('geral.tamanho_fatia'):i * settings.get('geral.tamanho_fatia') + settings.get('geral.tamanho_fatia')]
             self.send(parte)
+        return self.receive()
 
     def recuperar_arquivo(self):
         arquivo = str(input('Digite nome do arquivo: '))

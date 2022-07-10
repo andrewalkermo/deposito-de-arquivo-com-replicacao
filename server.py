@@ -1,11 +1,17 @@
+import os
 import sys
+
+import enums
 import utils
 import signal
 import socket
 import select
+import hashlib
 import threading
 import protocolo
+
 from enums import *
+from config import settings
 
 
 class Server:
@@ -33,6 +39,9 @@ class Server:
             client_socket.close()
         self.socket.close()
 
+    def receice(self, client_socket):
+        pass
+
     def handle_client(self, client_socket):
         while True:
             try:
@@ -43,7 +52,7 @@ class Server:
                 print('erro de conexão')
                 break
             if len(ready_to_read) > 0:
-                message = client_socket.recv(1024).decode()
+                message = client_socket.recv(settings.get('geral.tamanho_fatia')).decode()
                 if message:
                     self.processa_comando_do_cliente(client_socket, message)
             if len(ready_to_write) > 0:
@@ -77,15 +86,23 @@ class Server:
         """
         client_socket.send('1'.encode())
 
-        solicitacao = protocolo.desencapsular_solicitacao_deposito_arquivo(client_socket.recv(1024).decode())
+        solicitacao = protocolo.desencapsular_solicitacao_deposito_arquivo(
+            client_socket.recv(settings.get('geral.tamanho_fatia')).decode()
+        )
 
         arquivo_nome = solicitacao.nome_arquivo
         arquivo_tamanho = int(solicitacao.tamanho_arquivo)
 
-        arquivo_bytes = open(arquivo_nome, 'wb')
+        sha256_hash = hashlib.sha256()
 
-        partes = int(arquivo_tamanho / 1024)
-        resto = arquivo_tamanho % 1024
+        nome_arquivo_deposito = "{}.{}".format(solicitacao.hash_arquivo, arquivo_nome)
+        print('Nome do arquivo a ser depositado: {}'.format(nome_arquivo_deposito))
+        caminho = os.path.join(settings.get('server.pasta_deposito'), nome_arquivo_deposito)
+
+        arquivo_bytes = open(caminho, 'wb')
+
+        partes = int(arquivo_tamanho / settings.get('geral.tamanho_fatia'))
+        resto = arquivo_tamanho % settings.get('geral.tamanho_fatia')
         if resto > 0:
             partes += 1
 
@@ -93,16 +110,17 @@ class Server:
             if i == partes - 1:
                 parte = client_socket.recv(resto)
             else:
-                parte = client_socket.recv(1024)
+                parte = client_socket.recv(settings.get('geral.tamanho_fatia'))
+            sha256_hash.update(parte)
             arquivo_bytes.write(parte)
         arquivo_bytes.close()
-        print('Arquivo {} depositado com sucesso'.format(arquivo_nome))
-
-
-
-
-
-
+        if sha256_hash.hexdigest() == solicitacao.hash_arquivo:
+            print('Arquivo {} depositado com sucesso'.format(caminho))
+            client_socket.send(enums.Retorno.OK.value.encode())
+        else:
+            client_socket.send(enums.Retorno.ERRO.value.encode())
+            print('Erro ao depositar arquivo {}'.format(caminho))
+            os.remove(caminho)
 
 
 def signal_handler(server):
