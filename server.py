@@ -43,6 +43,7 @@ class Server:
         pass
 
     def handle_client(self, client_socket):
+        client_socket.send(utils.generate_uuid().encode())
         while True:
             try:
                 ready_to_read, ready_to_write, in_error = select.select([client_socket, ], [client_socket, ], [], 1)
@@ -90,6 +91,10 @@ class Server:
             client_socket.recv(settings.get('geral.tamanho_fatia')).decode()
         )
 
+        pasta = os.path.join(settings.get('server.pasta_deposito'), solicitacao.id_cliente)
+        if not os.path.exists(pasta):
+            os.makedirs(pasta)
+
         arquivo_nome = solicitacao.nome_arquivo
         arquivo_tamanho = int(solicitacao.tamanho_arquivo)
 
@@ -97,9 +102,9 @@ class Server:
 
         nome_arquivo_deposito = "{}.{}".format(solicitacao.hash_arquivo, arquivo_nome)
         print('Nome do arquivo a ser depositado: {}'.format(nome_arquivo_deposito))
-        caminho = os.path.join(settings.get('server.pasta_deposito'), nome_arquivo_deposito)
+        caminho_completo = os.path.join(pasta, nome_arquivo_deposito)
 
-        arquivo_bytes = open(caminho, 'wb')
+        arquivo_bytes = open(caminho_completo, 'wb')
 
         partes = int(arquivo_tamanho / settings.get('geral.tamanho_fatia'))
         resto = arquivo_tamanho % settings.get('geral.tamanho_fatia')
@@ -115,12 +120,12 @@ class Server:
             arquivo_bytes.write(parte)
         arquivo_bytes.close()
         if sha256_hash.hexdigest() == solicitacao.hash_arquivo:
-            print('Arquivo {} depositado com sucesso'.format(caminho))
+            print('Arquivo {} depositado com sucesso'.format(caminho_completo))
             client_socket.send(enums.Retorno.OK.value.encode())
         else:
             client_socket.send(enums.Retorno.ERRO.value.encode())
-            print('Erro ao depositar arquivo {}'.format(caminho))
-            os.remove(caminho)
+            print('Erro ao depositar arquivo {}'.format(caminho_completo))
+            os.remove(caminho_completo)
 
 
 def signal_handler(server):

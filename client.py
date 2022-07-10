@@ -7,9 +7,10 @@ import protocolo
 from enums import *
 from config import settings
 
+
 class Client:
-    def __init__(self, name, ip, port):
-        self.name = name
+    def __init__(self, id, ip, port):
+        self.id = id
         self.ip = ip
         self.port = port
         self.socket = None
@@ -55,6 +56,7 @@ class Client:
         arquivo_hash = sha256_hash.hexdigest()
 
         solicitacao = protocolo.encapsular_solicitacao_deposito_arquivo(
+            id_cliente=self.id,
             qtd_replicas=replicas,
             nome_arquivo=arquivo_nome,
             hash_arquivo=arquivo_hash,
@@ -73,7 +75,12 @@ class Client:
             else:
                 parte = arquivo_bytes[i * settings.get('geral.tamanho_fatia'):i * settings.get('geral.tamanho_fatia') + settings.get('geral.tamanho_fatia')]
             self.send(parte)
-        return self.receive()
+        resultado = self.receive()
+        if resultado == Retorno.OK.value:
+            print('Arquivo depositado com sucesso')
+        else:
+            print('Erro ao depositar arquivo')
+
 
     def recuperar_arquivo(self):
         arquivo = str(input('Digite nome do arquivo: '))
@@ -93,8 +100,15 @@ def main():
     host = args[1] if len(args) > 1 else str(input('Digite o host: '))
     port = int(args[2]) if len(args) > 2 else int(input('Digite a porta: '))
 
-    client = Client('Cliente', host, port)
+    id_antigo = str(input('Digite o id, pode deixar em branco para criar uma nova sessão: '))
+    client = Client(id_antigo, host, port)
     client.connect()
+
+    novo_id = str(client.receive())
+    if id_antigo == '':
+        client.id = novo_id
+        print('Seu id: {}'.format(novo_id))
+        print('Guarde o id para futuras sessões')
 
     signal.signal(signal.SIGINT, lambda signum, frame: signal_handler(client))
 

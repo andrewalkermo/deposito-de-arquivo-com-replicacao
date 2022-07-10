@@ -2,7 +2,8 @@ from re import match
 
 
 class DepositarArquivo:
-    def __init__(self, qtd_replicas, tamanho_arquivo, hash_arquivo, nome_arquivo):
+    def __init__(self, id_cliente, qtd_replicas, tamanho_arquivo, hash_arquivo, nome_arquivo):
+        self.id_cliente = id_cliente
         self.qtd_replicas = qtd_replicas
         self.tamanho_arquivo = tamanho_arquivo
         self.hash_arquivo = hash_arquivo
@@ -15,6 +16,7 @@ class RecuperarArquivo:
 
 
 def encapsular_solicitacao_deposito_arquivo(
+        id_cliente: str,
         qtd_replicas: int,
         tamanho_arquivo: int,
         hash_arquivo: str,
@@ -23,6 +25,7 @@ def encapsular_solicitacao_deposito_arquivo(
     """
     Encapsula a solicitação de depósito de arquivo.
     Args:
+        id_cliente: str
         qtd_replicas: int
         tamanho_arquivo: int
         hash_arquivo: str
@@ -31,8 +34,8 @@ def encapsular_solicitacao_deposito_arquivo(
     Returns:
         str: solicitacao
     """
-    return "{{qtd_replicas:{}|tamanho_arquivo:{}|hash_arquivo:{}|nome_arquivo:{}}}".format(
-        qtd_replicas, tamanho_arquivo, hash_arquivo, nome_arquivo
+    return "{{id_cliente:{}|qtd_replicas:{}|tamanho_arquivo:{}|hash_arquivo:{}|nome_arquivo:{}}}".format(
+        id_cliente, qtd_replicas, tamanho_arquivo, hash_arquivo, nome_arquivo
     )
 
 
@@ -57,11 +60,12 @@ def desencapsular_solicitacao_deposito_arquivo(solicitacao: str) -> DepositarArq
     Returns:
         DepositarArquivo
     """
-    qtd_replicas, tamanho_arquivo, hash_arquivo, nome_arquivo = match(
-        '^{qtd_replicas:(\d+)\|tamanho_arquivo:(\d+)\|hash_arquivo:(.*)\|nome_arquivo:(.*)}$',
+    id_cliente, qtd_replicas, tamanho_arquivo, hash_arquivo, nome_arquivo = match(
+        '^{id_cliente:(.*)\|qtd_replicas:(\d+)\|tamanho_arquivo:(\d+)\|hash_arquivo:(.*)\|nome_arquivo:(.*)}$',
         solicitacao
     ).groups()
     return DepositarArquivo(
+        id_cliente=id_cliente,
         qtd_replicas=qtd_replicas,
         tamanho_arquivo=tamanho_arquivo,
         hash_arquivo=hash_arquivo,
