@@ -1,10 +1,13 @@
+import os
 import sys
 import signal
 import socket
 import hashlib
 import protocolo
+import utils
 
 from enums import *
+from re import match
 from config import settings
 
 
@@ -55,38 +58,63 @@ class Client:
 
         arquivo_hash = sha256_hash.hexdigest()
 
-        solicitacao = protocolo.encapsular_solicitacao_deposito_arquivo(
+        solicitacao = protocolo.ClienteSolicitacaoDepositarArquivo(
             id_cliente=self.id,
             qtd_replicas=replicas,
             nome_arquivo=arquivo_nome,
             hash_arquivo=arquivo_hash,
             tamanho_arquivo=arquivo_tamanho
-        )
+        ).encapsular()
         self.send(solicitacao)
 
-        partes = int(arquivo_tamanho / settings.get('geral.tamanho_fatia'))
-        resto = arquivo_tamanho % settings.get('geral.tamanho_fatia')
-        if resto > 0:
-            partes += 1
+        utils.enviar_arquivo_por_socket(
+            socket_destinatario=self.socket,
+            tamanho_arquivo=arquivo_tamanho,
+            tamanho_fatia=settings.get('geral.tamanho_fatia'),
+            caminho_arquivo=arquivo
+        )
 
-        for i in range(partes):
-            if i == partes - 1:
-                parte = arquivo_bytes[i * settings.get('geral.tamanho_fatia'):i * settings.get('geral.tamanho_fatia') + resto]
-            else:
-                parte = arquivo_bytes[i * settings.get('geral.tamanho_fatia'):i * settings.get('geral.tamanho_fatia') + settings.get('geral.tamanho_fatia')]
-            self.send(parte)
         resultado = self.receive()
         if resultado == Retorno.OK.value:
             print('Arquivo depositado com sucesso')
         else:
             print('Erro ao depositar arquivo')
 
-
     def recuperar_arquivo(self):
-        arquivo = str(input('Digite nome do arquivo: '))
-        self.send(arquivo)
-        return self.receive()
+        self.send(Comando.RECUPERAR_ARQUIVO.value)
+        arquivo_nome = str(input('Digite nome do arquivo: '))
 
+        solicitacao = protocolo.ClienteSolicitacaoRecuperarArquivo(
+            id_cliente=self.id,
+            nome_arquivo=arquivo_nome
+        ).encapsular()
+        self.send(solicitacao)
+
+        resultado = self.receive()
+        if resultado == Retorno.ERRO.value:
+            print('Arquivo não encontrado')
+            return
+        elif match(protocolo.ServidorSolicitaEnvioArquivoRecuperadoParaCliente.pattern, resultado):
+            print('Arquivo disponível')
+            dados_arquivo_recuperado = protocolo.ServidorSolicitaEnvioArquivoRecuperadoParaCliente.desencapsular(
+                mensagem=resultado
+            )
+
+            caminho_arquivo = os.path.join(
+                settings.get('client.pasta_recuperados'),
+                arquivo_nome
+            )
+            tamanho_arquivo = int(dados_arquivo_recuperado.tamanho_arquivo)
+
+            utils.receber_arquivo_por_socket(
+                socket_origem=self.socket,
+                tamanho_arquivo=tamanho_arquivo,
+                tamanho_fatia=settings.get('geral.tamanho_fatia'),
+                caminho_arquivo=caminho_arquivo,
+                hash_arquivo=dados_arquivo_recuperado.hash_arquivo
+            )
+
+            print('Arquivo recuperado com sucesso')
 
 def signal_handler(client):
     print('Encerrando...')
@@ -121,14 +149,13 @@ def main():
     while True:
         print('0 - Encerrar conexão\n1 - Depositar arquivo\n2 - Recuperar arquivo')
         comando = str(input('Digite o comando: '))
-        print(comandos[comando])
         if comando in comandos:
             if comandos[comando] == Comando.ENCERRAR_CONEXAO.value:
                 break
             if comandos[comando] == Comando.DEPOSITAR_ARQUIVO.value:
                 client.depositar_arquivo()
             if comandos[comando] == Comando.RECUPERAR_ARQUIVO.value:
-                print(client.recuperar_arquivo())
+                client.recuperar_arquivo()
         else:
             print('Comando inválido')
 

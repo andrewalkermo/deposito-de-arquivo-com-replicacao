@@ -1,7 +1,25 @@
 from re import match
+from abc import abstractmethod
 
 
-class DepositarArquivo:
+class Protocolo:
+
+    pattern = None
+
+    @abstractmethod
+    def encapsular(self):
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def desencapsular(mensagem: str):
+        pass
+
+
+class ClienteSolicitacaoDepositarArquivo(Protocolo):
+
+    pattern = '^id_cliente:(.*)\|qtd_replicas:(\d+)\|tamanho_arquivo:(\d+)\|hash_arquivo:(.*)\|nome_arquivo:(.*)$'
+
     def __init__(self, id_cliente, qtd_replicas, tamanho_arquivo, hash_arquivo, nome_arquivo):
         self.id_cliente = id_cliente
         self.qtd_replicas = qtd_replicas
@@ -9,78 +27,71 @@ class DepositarArquivo:
         self.hash_arquivo = hash_arquivo
         self.nome_arquivo = nome_arquivo
 
+    def encapsular(self):
+        return "id_cliente:{}|qtd_replicas:{}|tamanho_arquivo:{}|hash_arquivo:{}|nome_arquivo:{}".format(
+            self.id_cliente, self.qtd_replicas, self.tamanho_arquivo, self.hash_arquivo, self.nome_arquivo
+        )
 
-class RecuperarArquivo:
-    def __init__(self, nome_arquivo):
+    @staticmethod
+    def desencapsular(mensagem):
+        id_cliente, qtd_replicas, tamanho_arquivo, hash_arquivo, nome_arquivo = match(
+            ClienteSolicitacaoDepositarArquivo.pattern,
+            mensagem
+        ).groups()
+        return ClienteSolicitacaoDepositarArquivo(
+            id_cliente=id_cliente,
+            qtd_replicas=qtd_replicas,
+            tamanho_arquivo=tamanho_arquivo,
+            hash_arquivo=hash_arquivo,
+            nome_arquivo=nome_arquivo
+        )
+
+
+class ClienteSolicitacaoRecuperarArquivo(Protocolo):
+
+    pattern = '^id_cliente:(.*)\|nome_arquivo:(.*)$'
+
+    def __init__(self, id_cliente, nome_arquivo):
+        self.id_cliente = id_cliente
         self.nome_arquivo = nome_arquivo
 
+    def encapsular(self):
+        return "id_cliente:{}|nome_arquivo:{}".format(
+            self.id_cliente, self.nome_arquivo
+        )
 
-def encapsular_solicitacao_deposito_arquivo(
-        id_cliente: str,
-        qtd_replicas: int,
-        tamanho_arquivo: int,
-        hash_arquivo: str,
-        nome_arquivo: str
-) -> str:
-    """
-    Encapsula a solicitação de depósito de arquivo.
-    Args:
-        id_cliente: str
-        qtd_replicas: int
-        tamanho_arquivo: int
-        hash_arquivo: str
-        nome_arquivo: str
-
-    Returns:
-        str: solicitacao
-    """
-    return "{{id_cliente:{}|qtd_replicas:{}|tamanho_arquivo:{}|hash_arquivo:{}|nome_arquivo:{}}}".format(
-        id_cliente, qtd_replicas, tamanho_arquivo, hash_arquivo, nome_arquivo
-    )
+    @staticmethod
+    def desencapsular(mensagem):
+        id_cliente, nome_arquivo = match(
+            ClienteSolicitacaoRecuperarArquivo.pattern,
+            mensagem
+        ).groups()
+        return ClienteSolicitacaoRecuperarArquivo(
+            id_cliente=id_cliente,
+            nome_arquivo=nome_arquivo
+        )
 
 
-def encapsular_solicitacao_recuperacao_arquivo(nome_arquivo: str) -> str:
-    """
-    Encapsula a solicitação de recuperação de arquivo.
-    Args:
-        nome_arquivo: str
+class ServidorSolicitaEnvioArquivoRecuperadoParaCliente(Protocolo):
 
-    Returns:
-        str: solicitacao
-    """
-    return '{{nome_arquivo:{}}}'.format(nome_arquivo)
+    pattern = '^tamanho_arquivo:(\d+)\|hash_arquivo:(.*)$'
 
+    def __init__(self, tamanho_arquivo, hash_arquivo):
+        self.tamanho_arquivo = tamanho_arquivo
+        self.hash_arquivo = hash_arquivo
 
-def desencapsular_solicitacao_deposito_arquivo(solicitacao: str) -> DepositarArquivo:
-    """
-    Desencapsula a solicitação de depósito de arquivo.
-    Args:
-        solicitacao: str
+    def encapsular(self):
+        return "tamanho_arquivo:{}|hash_arquivo:{}".format(
+            self.tamanho_arquivo, self.hash_arquivo
+        )
 
-    Returns:
-        DepositarArquivo
-    """
-    id_cliente, qtd_replicas, tamanho_arquivo, hash_arquivo, nome_arquivo = match(
-        '^{id_cliente:(.*)\|qtd_replicas:(\d+)\|tamanho_arquivo:(\d+)\|hash_arquivo:(.*)\|nome_arquivo:(.*)}$',
-        solicitacao
-    ).groups()
-    return DepositarArquivo(
-        id_cliente=id_cliente,
-        qtd_replicas=qtd_replicas,
-        tamanho_arquivo=tamanho_arquivo,
-        hash_arquivo=hash_arquivo,
-        nome_arquivo=nome_arquivo
-    )
-
-
-def desencapsular_solicitacao_recuperacao_arquivo(solicitacao: str) -> RecuperarArquivo:
-    """
-    Desencapsula a solicitação de recuperação de arquivo.
-    Args:
-        solicitacao: str
-
-    Returns:
-        RecuperarArquivo
-    """
-    nome_arquivo = match('{{nome_arquivo:(.*)}}', solicitacao).group(1)
-    return RecuperarArquivo(nome_arquivo)
+    @staticmethod
+    def desencapsular(mensagem):
+        tamanho_arquivo, hash_arquivo = match(
+            ServidorSolicitaEnvioArquivoRecuperadoParaCliente.pattern,
+            mensagem
+        ).groups()
+        return ServidorSolicitaEnvioArquivoRecuperadoParaCliente(
+            tamanho_arquivo=tamanho_arquivo,
+            hash_arquivo=hash_arquivo,
+        )

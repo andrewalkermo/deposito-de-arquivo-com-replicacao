@@ -133,3 +133,6 @@ dmypy.json
 
 storage/
 !storage/.gitkeep
+
+downloads/*
+!downloads/.gitkeep

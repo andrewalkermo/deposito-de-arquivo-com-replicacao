@@ -72,12 +72,16 @@ class Server:
             client_socket:
             comando:
         """
+        print('Comando recebido: {}'.format(comando))
         if comando == Comando.DEPOSITAR_ARQUIVO.value:
             self.processar_depositar_arquivo(client_socket)
         elif comando == Comando.RECUPERAR_ARQUIVO.value:
-            pass
+            self.processar_recuperar_arquivo(client_socket)
         elif comando == Comando.ENCERRAR_CONEXAO.value:
-            pass
+            client_socket.shutdown(2)
+            client_socket.close()
+            self.clients.remove(client_socket)
+            print('Client disconnected')
 
     def processar_depositar_arquivo(self, client_socket):
         """
@@ -87,7 +91,7 @@ class Server:
         """
         client_socket.send('1'.encode())
 
-        solicitacao = protocolo.desencapsular_solicitacao_deposito_arquivo(
+        solicitacao = protocolo.ClienteSolicitacaoDepositarArquivo.desencapsular(
             client_socket.recv(settings.get('geral.tamanho_fatia')).decode()
         )
 
@@ -98,34 +102,65 @@ class Server:
         arquivo_nome = solicitacao.nome_arquivo
         arquivo_tamanho = int(solicitacao.tamanho_arquivo)
 
-        sha256_hash = hashlib.sha256()
-
         nome_arquivo_deposito = "{}.{}".format(solicitacao.hash_arquivo, arquivo_nome)
         print('Nome do arquivo a ser depositado: {}'.format(nome_arquivo_deposito))
         caminho_completo = os.path.join(pasta, nome_arquivo_deposito)
 
-        arquivo_bytes = open(caminho_completo, 'wb')
+        utils.receber_arquivo_por_socket(
+            socket_origem=client_socket,
+            caminho_arquivo=caminho_completo,
+            tamanho_arquivo=arquivo_tamanho,
+            hash_arquivo=solicitacao.hash_arquivo,
+            tamanho_fatia=settings.get('geral.tamanho_fatia')
+        )
 
-        partes = int(arquivo_tamanho / settings.get('geral.tamanho_fatia'))
-        resto = arquivo_tamanho % settings.get('geral.tamanho_fatia')
-        if resto > 0:
-            partes += 1
-
-        for i in range(partes):
-            if i == partes - 1:
-                parte = client_socket.recv(resto)
-            else:
-                parte = client_socket.recv(settings.get('geral.tamanho_fatia'))
-            sha256_hash.update(parte)
-            arquivo_bytes.write(parte)
-        arquivo_bytes.close()
-        if sha256_hash.hexdigest() == solicitacao.hash_arquivo:
-            print('Arquivo {} depositado com sucesso'.format(caminho_completo))
-            client_socket.send(enums.Retorno.OK.value.encode())
-        else:
+    def processar_recuperar_arquivo(self, client_socket):
+        """
+        Recupera um arquivo do servidor.
+        Args:
+            client_socket:
+        """
+        solicitacao = protocolo.ClienteSolicitacaoRecuperarArquivo.desencapsular(
+            client_socket.recv(settings.get('geral.tamanho_fatia')).decode()
+        )
+        pasta = os.path.join(settings.get('server.pasta_deposito'), solicitacao.id_cliente)
+        if not os.path.exists(pasta):
             client_socket.send(enums.Retorno.ERRO.value.encode())
-            print('Erro ao depositar arquivo {}'.format(caminho_completo))
-            os.remove(caminho_completo)
+            print('Erro ao recuperar arquivo: pasta não encontrada')
+            return
+
+        lista_de_arquivos = os.listdir(pasta)
+
+        arquivos_na_pasta_do_cliente = [arquivo.split('.', 1)[1] for arquivo in lista_de_arquivos]
+        hashs_arquivos_na_pasta_do_cliente = [arquivo.split('.', 1)[0] for arquivo in lista_de_arquivos]
+        print('Arquivos na pasta do cliente: {}'.format(arquivos_na_pasta_do_cliente))
+        if solicitacao.nome_arquivo not in arquivos_na_pasta_do_cliente:
+            client_socket.send(enums.Retorno.ERRO.value.encode())
+            print('Erro ao recuperar arquivo: arquivo não encontrado')
+            return
+
+        indice_arquivo = arquivos_na_pasta_do_cliente.index(solicitacao.nome_arquivo)
+        hash_arquivo = hashs_arquivos_na_pasta_do_cliente[indice_arquivo]
+
+        caminho_completo = os.path.join(pasta, "{}.{}".format(hash_arquivo, solicitacao.nome_arquivo))
+        arquivo_tamanho = os.path.getsize(caminho_completo)
+
+        client_socket.send(protocolo.ServidorSolicitaEnvioArquivoRecuperadoParaCliente(
+            hash_arquivo=hash_arquivo,
+            tamanho_arquivo=arquivo_tamanho
+        ).encapsular().encode())
+
+        utils.enviar_arquivo_por_socket(
+            socket_destinatario=client_socket,
+            caminho_arquivo=caminho_completo,
+            tamanho_arquivo=arquivo_tamanho,
+            tamanho_fatia=settings.get('geral.tamanho_fatia')
+        )
+        resposta = client_socket.recv(settings.get('geral.tamanho_fatia')).decode()
+        if resposta == enums.Retorno.OK.value:
+            print('Arquivo enviado com sucesso')
+        else:
+            print('Erro ao enviar arquivo')
 
 
 def signal_handler(server):

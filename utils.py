@@ -1,4 +1,8 @@
+import os
+import enums
 import socket
+import hashlib
+
 from uuid import uuid4, UUID
 
 
@@ -33,3 +37,67 @@ def is_valid_uuid(uuid_to_test, version=4):
         return False
     return str(uuid_obj) == uuid_to_test
 
+
+def enviar_arquivo_por_socket(socket_destinatario, caminho_arquivo: str, tamanho_arquivo: int, tamanho_fatia: int):
+    """
+    Envia um arquivo por socket.
+    Args:
+        socket_destinatario:
+        caminho_arquivo: str
+        tamanho_arquivo: int
+        tamanho_fatia: int
+    """
+    partes = int(tamanho_arquivo / tamanho_fatia)
+    resto = tamanho_arquivo % tamanho_fatia
+    if resto > 0:
+        partes += 1
+
+    for i in range(partes):
+        if i == partes - 1:
+            parte = open(caminho_arquivo, 'rb').read()[i * tamanho_fatia:]
+        else:
+            parte = open(caminho_arquivo, 'rb').read()[
+                    i * tamanho_fatia:(i + 1) * tamanho_fatia]
+        socket_destinatario.send(parte)
+
+
+def receber_arquivo_por_socket(
+        socket_origem,
+        caminho_arquivo: str,
+        hash_arquivo: str,
+        tamanho_arquivo: int,
+        tamanho_fatia: int
+):
+    """
+    Recebe um arquivo por socket.
+    Args:
+        socket_origem:
+        caminho_arquivo: str
+        hash_arquivo: str
+        tamanho_arquivo: int
+        tamanho_fatia: int
+    """
+
+    sha256_hash = hashlib.sha256()
+    arquivo_bytes = open(caminho_arquivo, 'wb')
+    partes = int(tamanho_arquivo / tamanho_fatia)
+    resto = tamanho_arquivo % tamanho_fatia
+    if resto > 0:
+        partes += 1
+
+    for i in range(partes):
+        if i == partes - 1:
+            parte = socket_origem.recv(resto)
+        else:
+            parte = socket_origem.recv(tamanho_fatia)
+        sha256_hash.update(parte)
+        arquivo_bytes.write(parte)
+    arquivo_bytes.close()
+
+    if sha256_hash.hexdigest() == hash_arquivo:
+        print('Arquivo recebido com sucesso!')
+        socket_origem.send(enums.Retorno.OK.value.encode())
+    else:
+        socket_origem.send(enums.Retorno.ERRO.value.encode())
+        print('Erro ao receber arquivo!')
+        os.remove(caminho_arquivo)
