@@ -52,7 +52,7 @@ class Server:
                 print('erro de conexão')
                 break
             if len(ready_to_read) > 0:
-                message = client_socket.recv(settings.get('geral.tamanho_fatia')).decode()
+                message = client_socket.recv(settings.get('geral.tamanho_padrao')).decode()
                 if message:
                     self.processa_comando_do_cliente(client_socket, message)
             if len(ready_to_write) > 0:
@@ -91,7 +91,7 @@ class Server:
         client_socket.send('1'.encode())
 
         solicitacao = protocolo.ClienteSolicitacaoDepositarArquivo.desencapsular(
-            client_socket.recv(settings.get('geral.tamanho_fatia')).decode()
+            client_socket.recv(settings.get('geral.tamanho_padrao')).decode()
         )
 
         pasta = os.path.join(settings.get('server.pasta_deposito'), solicitacao.id_cliente)
@@ -110,7 +110,7 @@ class Server:
             caminho_arquivo=caminho_completo,
             tamanho_arquivo=arquivo_tamanho,
             hash_arquivo=solicitacao.hash_arquivo,
-            tamanho_fatia=settings.get('geral.tamanho_fatia')
+            tamanho_fatia=settings.get('geral.tamanho_fatia_arquivo_arquivo')
         )
 
     def processar_recuperar_arquivo(self, client_socket):
@@ -120,7 +120,7 @@ class Server:
             client_socket:
         """
         solicitacao = protocolo.ClienteSolicitacaoRecuperarArquivo.desencapsular(
-            client_socket.recv(settings.get('geral.tamanho_fatia')).decode()
+            client_socket.recv(settings.get('geral.tamanho_padrao')).decode()
         )
         pasta = os.path.join(settings.get('server.pasta_deposito'), solicitacao.id_cliente)
         if not os.path.exists(pasta):
@@ -153,7 +153,7 @@ class Server:
             socket_destinatario=client_socket,
             caminho_arquivo=caminho_completo,
             tamanho_arquivo=arquivo_tamanho,
-            tamanho_fatia=settings.get('geral.tamanho_fatia')
+            tamanho_fatia=settings.get('geral.tamanho_fatia_arquivo_arquivo')
         )
 
 

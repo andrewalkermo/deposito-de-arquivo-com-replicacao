@@ -1,5 +1,6 @@
 [geral]
-tamanho_fatia=1024
+tamanho_padrao=1024
+tamanho_fatia_arquivo_arquivo=8192
 
 [server]
 pasta_deposito='./storage'
