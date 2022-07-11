@@ -31,7 +31,7 @@ class Client:
         self.socket.send(message)
 
     def receive(self):
-        return self.socket.recv(settings.get('geral.tamanho_padrao')).decode()
+        return self.socket.recv(settings.get('geral.tamanho_buffer_padrao')).decode()
 
     def close(self):
         self.socket.close()
@@ -52,7 +52,7 @@ class Client:
 
         sha256_hash = hashlib.sha256()
         with open(arquivo, 'rb') as f:
-            for byte_block in iter(lambda: f.read(settings.get('geral.tamanho_fatia_arquivo_arquivo')), b''):
+            for byte_block in iter(lambda: f.read(settings.get('geral.tamanho_buffer_arquivo')), b''):
                 sha256_hash.update(byte_block)
 
         arquivo_hash = sha256_hash.hexdigest()
@@ -69,7 +69,7 @@ class Client:
         utils.enviar_arquivo_por_socket(
             socket_destinatario=self.socket,
             tamanho_arquivo=arquivo_tamanho,
-            tamanho_fatia=settings.get('geral.tamanho_fatia_arquivo_arquivo'),
+            tamanho_fatia=settings.get('geral.tamanho_buffer_arquivo'),
             caminho_arquivo=arquivo
         )
 
@@ -102,7 +102,7 @@ class Client:
             utils.receber_arquivo_por_socket(
                 socket_origem=self.socket,
                 tamanho_arquivo=tamanho_arquivo,
-                tamanho_fatia=settings.get('geral.tamanho_fatia_arquivo_arquivo'),
+                tamanho_fatia=settings.get('geral.tamanho_buffer_arquivo'),
                 caminho_arquivo=caminho_arquivo,
                 hash_arquivo=dados_arquivo_recuperado.hash_arquivo
             )
