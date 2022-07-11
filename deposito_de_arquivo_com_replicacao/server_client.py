@@ -4,6 +4,7 @@ import socket
 from deposito_de_arquivo_com_replicacao import utils
 from deposito_de_arquivo_com_replicacao.config import settings
 
+
 class ServerClient:
     def __init__(self, server_client_id, ip, port):
         self.id = server_client_id

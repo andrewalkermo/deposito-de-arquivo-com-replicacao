@@ -5,5 +5,9 @@ tamanho_buffer_arquivo=8192
 [server]
 pasta_deposito='../storage'
 
+
 [client]
 pasta_recuperados='../downloads'
+
+[mirror]
+pasta_mirror='../mirror'

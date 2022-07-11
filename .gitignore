@@ -131,8 +131,11 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-storage/
+storage/*
 !storage/.gitkeep
 
 downloads/*
 !downloads/.gitkeep
+
+mirror/*
+!mirror/.gitkeep

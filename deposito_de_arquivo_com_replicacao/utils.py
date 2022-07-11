@@ -64,8 +64,10 @@ def enviar_arquivo_por_socket(socket_destinatario, caminho_arquivo: str, tamanho
     resultado = socket_destinatario.recv(tamanho_fatia).decode()
     if resultado == enums.Retorno.OK.value:
         print('Arquivo enviado com sucesso')
+        return True
     else:
         print('Erro ao enviar arquivo')
+        return False
 
 
 def receber_arquivo_por_socket(

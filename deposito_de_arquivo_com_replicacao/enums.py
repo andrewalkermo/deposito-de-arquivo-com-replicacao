@@ -8,6 +8,7 @@ class Comando(Enum):
     DEPOSITAR_ARQUIVO = 'd'
     RECUPERAR_ARQUIVO = 'r'
     ENCERRAR_CONEXAO = 'e'
+    REGISTRAR_MIRROR = 'm'
 
 
 class Retorno(Enum):
