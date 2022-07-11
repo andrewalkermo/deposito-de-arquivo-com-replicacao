@@ -155,26 +155,32 @@ class Server:
             tamanho_fatia=settings.get('geral.tamanho_buffer_arquivo')
         )
 
+    def signal_handler(self):
+        print('Encerrando...')
+        self.close()
+        exit()
 
-def signal_handler(server):
-    print('Encerrando...')
-    server.close()
-    exit()
+    @staticmethod
+    def create():
+        """
+        Cria uma instância do servidor.
+        """
+        args = sys.argv
+        port = int(args[1]) if len(args) > 1 else int(input('Digite a porta: '))
+
+        if not utils.check_port(port):
+            print('Porta já está em uso')
+            exit()
+
+        server = Server(port)
+        server.start()
+
+        signal.signal(signal.SIGINT, lambda signum, frame: server.signal_handler())
+        return server
 
 
 def main():
-    args = sys.argv
-    port = int(args[1]) if len(args) > 1 else int(input('Digite a porta: '))
-
-    if not utils.check_port(port):
-        print('Porta já está em uso')
-        exit()
-
-    server = Server(port)
-    server.start()
-
-    signal.signal(signal.SIGINT, lambda signum, frame: signal_handler(server))
-
+    server = Server.create()
     print('Aguardando conexão...')
     while True:
         server.accept()

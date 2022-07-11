@@ -1,41 +1,15 @@
 import os
-import sys
-import signal
-import socket
+import utils
 import hashlib
 import protocolo
-import utils
 
 from enums import *
 from re import match
 from config import settings
+from server_client import ServerClient
 
 
-class Client:
-    def __init__(self, id, ip, port):
-        self.id = id
-        self.ip = ip
-        self.port = port
-        self.socket = None
-        self.connected = False
-
-    def connect(self):
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.connect((self.ip, self.port))
-        self.connected = True
-
-    def send(self, message):
-        # check if has encode
-        if isinstance(message, str):
-            message = message.encode()
-        self.socket.send(message)
-
-    def receive(self):
-        return self.socket.recv(settings.get('geral.tamanho_buffer_padrao')).decode()
-
-    def close(self):
-        self.socket.close()
-        self.connected = False
+class Client(ServerClient):
 
     def depositar_arquivo(self):
         self.send(Comando.DEPOSITAR_ARQUIVO.value)
@@ -110,34 +84,8 @@ class Client:
             print('Arquivo recuperado com sucesso')
 
 
-def signal_handler(client):
-    print('Encerrando...')
-    client.close()
-    exit()
-
-
 def main():
-    args = sys.argv
-
-    host = args[1] if len(args) > 1 else str(input('Digite o host: '))
-    port = int(args[2]) if len(args) > 2 else int(input('Digite a porta: '))
-
-    client_id = str(args[3]) \
-        if len(args) > 3 \
-        else str(input('Digite o id, pode deixar em branco para criar uma nova sessão: '))
-
-    if client_id == '':
-        client_id = utils.generate_uuid()
-        print('Seu id: {}'.format(client_id))
-        print('Guarde o id para futuras sessões')
-    elif utils.is_valid_uuid(client_id) is False:
-        print('Id inválido')
-        return
-
-    client = Client(client_id, host, port)
-    client.connect()
-
-    signal.signal(signal.SIGINT, lambda signum, frame: signal_handler(client))
+    client = Client.create()
 
     comandos = {
         '0': Comando.ENCERRAR_CONEXAO.value,
