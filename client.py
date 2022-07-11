@@ -47,9 +47,8 @@ class Client:
             print('Não há replicas disponíveis')
             return
 
-        arquivo_bytes = open(arquivo, 'rb').read()
         arquivo_nome = arquivo.split('/')[-1]
-        arquivo_tamanho = len(arquivo_bytes)
+        arquivo_tamanho = os.path.getsize(arquivo)
 
         sha256_hash = hashlib.sha256()
         with open(arquivo, 'rb') as f:
@@ -73,12 +72,6 @@ class Client:
             tamanho_fatia=settings.get('geral.tamanho_fatia'),
             caminho_arquivo=arquivo
         )
-
-        resultado = self.receive()
-        if resultado == Retorno.OK.value:
-            print('Arquivo depositado com sucesso')
-        else:
-            print('Erro ao depositar arquivo')
 
     def recuperar_arquivo(self):
         self.send(Comando.RECUPERAR_ARQUIVO.value)

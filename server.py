@@ -155,11 +155,6 @@ class Server:
             tamanho_arquivo=arquivo_tamanho,
             tamanho_fatia=settings.get('geral.tamanho_fatia')
         )
-        resposta = client_socket.recv(settings.get('geral.tamanho_fatia')).decode()
-        if resposta == enums.Retorno.OK.value:
-            print('Arquivo enviado com sucesso')
-        else:
-            print('Erro ao enviar arquivo')
 
 
 def signal_handler(server):

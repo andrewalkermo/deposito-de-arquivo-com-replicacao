@@ -48,18 +48,26 @@ def enviar_arquivo_por_socket(socket_destinatario, caminho_arquivo: str, tamanho
         tamanho_fatia: int
     """
     partes = int(tamanho_arquivo / tamanho_fatia)
-    resto = tamanho_arquivo % tamanho_fatia
+    resto = tamanho_arquivo - (partes * tamanho_fatia)
+    print('partes: {}'.format(partes))
+    print('resto: {}'.format(resto))
+
     if resto > 0:
         partes += 1
 
-    for i in range(partes):
-        if i == partes - 1:
-            parte = open(caminho_arquivo, 'rb').read()[i * tamanho_fatia:]
-        else:
-            parte = open(caminho_arquivo, 'rb').read()[
-                    i * tamanho_fatia:(i + 1) * tamanho_fatia]
-        socket_destinatario.send(parte)
+    with open(caminho_arquivo, 'rb') as f:
+        for i in range(partes):
+            if i == partes - 1:
+                parte = f.read(resto)
+            else:
+                parte = f.read(tamanho_fatia)
+            socket_destinatario.send(parte)
 
+    resultado = socket_destinatario.recv(tamanho_fatia).decode()
+    if resultado == enums.Retorno.OK.value:
+        print('Arquivo enviado com sucesso')
+    else:
+        print('Erro ao enviar arquivo')
 
 def receber_arquivo_por_socket(
         socket_origem,
@@ -81,7 +89,8 @@ def receber_arquivo_por_socket(
     sha256_hash = hashlib.sha256()
     arquivo_bytes = open(caminho_arquivo, 'wb')
     partes = int(tamanho_arquivo / tamanho_fatia)
-    resto = tamanho_arquivo % tamanho_fatia
+    resto = tamanho_arquivo - (partes * tamanho_fatia)
+
     if resto > 0:
         partes += 1
 
@@ -90,8 +99,10 @@ def receber_arquivo_por_socket(
             parte = socket_origem.recv(resto)
         else:
             parte = socket_origem.recv(tamanho_fatia)
-        sha256_hash.update(parte)
+
         arquivo_bytes.write(parte)
+        sha256_hash.update(parte)
+
     arquivo_bytes.close()
 
     if sha256_hash.hexdigest() == hash_arquivo:
