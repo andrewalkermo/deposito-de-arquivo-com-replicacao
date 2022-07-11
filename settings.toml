@@ -3,7 +3,7 @@ tamanho_buffer_padrao=1024
 tamanho_buffer_arquivo=8192
 
 [server]
-pasta_deposito='./storage'
+pasta_deposito='../storage'
 
 [client]
-pasta_recuperados='./downloads'
+pasta_recuperados='../downloads'

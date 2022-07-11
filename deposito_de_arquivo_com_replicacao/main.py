@@ -2,12 +2,14 @@ from deposito_de_arquivo_com_replicacao import server, client
 
 
 if __name__ == '__main__':
-    print('\n1 - Servidor\n2 - Cliente')
+    print('\n1 - Servidor\n2 - Cliente\n 3 - Mirror')
     opcao = int(input('Digite a opção desejada: '))
     if opcao == 1:
-        server.main()
+        server.main([])
     elif opcao == 2:
-        client.main()
+        client.main([])
+    elif opcao == 3:
+        client.main([])
     else:
         print('Opção inválida')
         exit()
