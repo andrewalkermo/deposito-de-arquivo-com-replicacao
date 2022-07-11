@@ -43,7 +43,6 @@ class Server:
         pass
 
     def handle_client(self, client_socket):
-        client_socket.send(utils.generate_uuid().encode())
         while True:
             try:
                 ready_to_read, ready_to_write, in_error = select.select([client_socket, ], [client_socket, ], [], 1)

@@ -128,15 +128,15 @@ def main():
     host = args[1] if len(args) > 1 else str(input('Digite o host: '))
     port = int(args[2]) if len(args) > 2 else int(input('Digite a porta: '))
 
-    id_antigo = str(input('Digite o id, pode deixar em branco para criar uma nova sessão: '))
-    client = Client(id_antigo, host, port)
-    client.connect()
+    client_id = str(input('Digite o id, pode deixar em branco para criar uma nova sessão: '))
 
-    novo_id = str(client.receive())
-    if id_antigo == '':
-        client.id = novo_id
-        print('Seu id: {}'.format(novo_id))
+    if client_id == '':
+        client_id = utils.generate_uuid()
+        print('Seu id: {}'.format(client_id))
         print('Guarde o id para futuras sessões')
+
+    client = Client(client_id, host, port)
+    client.connect()
 
     signal.signal(signal.SIGINT, lambda signum, frame: signal_handler(client))
 
