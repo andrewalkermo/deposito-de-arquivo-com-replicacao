@@ -46,10 +46,8 @@ class Mirror(ServerClient):
             socket_origem=self.socket,
             caminho_arquivo=caminho_completo,
             tamanho_arquivo=arquivo_tamanho,
-            hash_arquivo=solicitacao.hash_arquivo,
-            tamanho_fatia=settings.get('geral.tamanho_buffer_arquivo')
+            hash_arquivo=solicitacao.hash_arquivo
         )
-        print('Arquivo replicado com sucesso.')
 
 
 def main(args):

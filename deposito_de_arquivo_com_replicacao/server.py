@@ -127,25 +127,23 @@ class Server:
         print('Nome do arquivo a ser depositado: {}'.format(nome_arquivo_deposito))
         caminho_completo = os.path.join(pasta, nome_arquivo_deposito)
 
-        utils.receber_arquivo_por_socket(
+        resultado = utils.receber_arquivo_por_socket(
             socket_origem=server_client_socket,
             caminho_arquivo=caminho_completo,
             tamanho_arquivo=arquivo_tamanho,
-            hash_arquivo=solicitacao.hash_arquivo,
-            tamanho_fatia=settings.get('geral.tamanho_buffer_arquivo')
+            hash_arquivo=solicitacao.hash_arquivo
         )
-
-        # envia para as replicas em threads
-        threading.Thread(target=self.enviar_arquivo_para_replicas, kwargs=({
-            'qtd_replicas': solicitacao.qtd_replicas,
-            'caminho_arquivo': caminho_completo,
-            'hash_arquivo': solicitacao.hash_arquivo,
-            'nome_arquivo': arquivo_nome,
-            'tamanho_arquivo': arquivo_tamanho,
-            'id_cliente': solicitacao.id_cliente
-        })).start()
-
-        # envia replicados para o cliente
+        if resultado:
+            # envia para as replicas em threads
+            threading.Thread(target=self.enviar_arquivo_para_replicas, kwargs=({
+                'qtd_replicas': solicitacao.qtd_replicas,
+                'caminho_arquivo': caminho_completo,
+                'hash_arquivo': solicitacao.hash_arquivo,
+                'nome_arquivo': arquivo_nome,
+                'tamanho_arquivo': arquivo_tamanho,
+                'id_cliente': solicitacao.id_cliente
+            })).start()
+            # envia replicados para o cliente
 
     def enviar_arquivo_para_replicas(self, qtd_replicas, nome_arquivo, caminho_arquivo, tamanho_arquivo, hash_arquivo, id_cliente):
         """
@@ -201,8 +199,7 @@ class Server:
         return utils.enviar_arquivo_por_socket(
             socket_destinatario=mirror_socket,
             caminho_arquivo=caminho_arquivo,
-            tamanho_arquivo=tamanho_arquivo,
-            tamanho_fatia=settings.get('geral.tamanho_buffer_arquivo')
+            tamanho_arquivo=tamanho_arquivo
         )
 
     def processar_recuperar_arquivo(self, server_client_socket):
@@ -244,8 +241,7 @@ class Server:
         utils.enviar_arquivo_por_socket(
             socket_destinatario=server_client_socket,
             caminho_arquivo=caminho_completo,
-            tamanho_arquivo=arquivo_tamanho,
-            tamanho_fatia=settings.get('geral.tamanho_buffer_arquivo')
+            tamanho_arquivo=arquivo_tamanho
         )
 
     def processar_registrar_mirror(self, server_client_socket, comando: str):

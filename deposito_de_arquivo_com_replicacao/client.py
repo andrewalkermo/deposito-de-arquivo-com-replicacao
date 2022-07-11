@@ -42,7 +42,6 @@ class Client(ServerClient):
         utils.enviar_arquivo_por_socket(
             socket_destinatario=self.socket,
             tamanho_arquivo=arquivo_tamanho,
-            tamanho_fatia=settings.get('geral.tamanho_buffer_arquivo'),
             caminho_arquivo=arquivo
         )
 
@@ -75,12 +74,9 @@ class Client(ServerClient):
             utils.receber_arquivo_por_socket(
                 socket_origem=self.socket,
                 tamanho_arquivo=tamanho_arquivo,
-                tamanho_fatia=settings.get('geral.tamanho_buffer_arquivo'),
                 caminho_arquivo=caminho_arquivo,
                 hash_arquivo=dados_arquivo_recuperado.hash_arquivo
             )
-
-            print('Arquivo recuperado com sucesso')
 
 
 def main(args):

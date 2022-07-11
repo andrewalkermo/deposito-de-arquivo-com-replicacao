@@ -149,3 +149,28 @@ class ServidorsolicitarReplicarArquivo(Protocolo):
             hash_arquivo=hash_arquivo,
             nome_arquivo=nome_arquivo
         )
+
+
+class ResultadoRecebimentoDeArquivo(Protocolo):
+
+    pattern = '^hash_arquivo:(.*)\|resultado:(\d+)$'
+
+    def __init__(self, hash_arquivo, resultado):
+        self.hash_arquivo = hash_arquivo
+        self.resultado = resultado
+
+    def encapsular(self):
+        return "hash_arquivo:{}|resultado:{}".format(
+            self.hash_arquivo, self.resultado
+        )
+
+    @staticmethod
+    def desencapsular(mensagem):
+        hash_arquivo, resultado = match(
+            ResultadoRecebimentoDeArquivo.pattern,
+            mensagem
+        ).groups()
+        return ResultadoRecebimentoDeArquivo(
+            hash_arquivo=hash_arquivo,
+            resultado=resultado
+        )
