@@ -49,8 +49,6 @@ def enviar_arquivo_por_socket(socket_destinatario, caminho_arquivo: str, tamanho
     """
     partes = int(tamanho_arquivo / tamanho_fatia)
     resto = tamanho_arquivo - (partes * tamanho_fatia)
-    print('partes: {}'.format(partes))
-    print('resto: {}'.format(resto))
 
     if resto > 0:
         partes += 1

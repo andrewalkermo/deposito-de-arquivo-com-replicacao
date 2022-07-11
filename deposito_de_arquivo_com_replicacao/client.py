@@ -86,22 +86,16 @@ class Client(ServerClient):
 def main(args):
     client = Client.create(args)
 
-    comandos = {
-        '0': enums.Comando.ENCERRAR_CONEXAO.value,
-        '1': enums.Comando.DEPOSITAR_ARQUIVO.value,
-        '2': enums.Comando.RECUPERAR_ARQUIVO.value,
-    }
-
     while True:
-        print('0 - Encerrar conexão\n1 - Depositar arquivo\n2 - Recuperar arquivo')
+        print('d - Depositar arquivo\nr - Recuperar arquivo\ne - Encerrar conexão')
         comando = str(input('Digite o comando: '))
-        if comando in comandos:
-            if comandos[comando] == enums.Comando.ENCERRAR_CONEXAO.value:
-                break
-            if comandos[comando] == enums.Comando.DEPOSITAR_ARQUIVO.value:
-                client.depositar_arquivo()
-            if comandos[comando] == enums.Comando.RECUPERAR_ARQUIVO.value:
-                client.recuperar_arquivo()
+
+        if comando == enums.Comando.ENCERRAR_CONEXAO.value:
+            break
+        elif comando == enums.Comando.DEPOSITAR_ARQUIVO.value:
+            client.depositar_arquivo()
+        elif comando == enums.Comando.RECUPERAR_ARQUIVO.value:
+            client.recuperar_arquivo()
         else:
             print('Comando inválido')
 
