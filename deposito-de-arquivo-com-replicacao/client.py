@@ -109,6 +109,7 @@ class Client:
 
             print('Arquivo recuperado com sucesso')
 
+
 def signal_handler(client):
     print('Encerrando...')
     client.close()
@@ -121,12 +122,17 @@ def main():
     host = args[1] if len(args) > 1 else str(input('Digite o host: '))
     port = int(args[2]) if len(args) > 2 else int(input('Digite a porta: '))
 
-    client_id = str(input('Digite o id, pode deixar em branco para criar uma nova sessão: '))
+    client_id = str(args[3]) \
+        if len(args) > 3 \
+        else str(input('Digite o id, pode deixar em branco para criar uma nova sessão: '))
 
     if client_id == '':
         client_id = utils.generate_uuid()
         print('Seu id: {}'.format(client_id))
         print('Guarde o id para futuras sessões')
+    elif utils.is_valid_uuid(client_id) is False:
+        print('Id inválido')
+        return
 
     client = Client(client_id, host, port)
     client.connect()

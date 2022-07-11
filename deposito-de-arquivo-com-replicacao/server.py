@@ -6,7 +6,6 @@ import utils
 import signal
 import socket
 import select
-import hashlib
 import threading
 import protocolo
 
