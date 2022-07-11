@@ -1,9 +1,9 @@
 import os
-import enums
 import socket
 import hashlib
 
 from uuid import uuid4, UUID
+from deposito_de_arquivo_com_replicacao import enums
 
 
 def check_port(port: int) -> bool:

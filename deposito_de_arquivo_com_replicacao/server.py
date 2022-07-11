@@ -1,16 +1,13 @@
 import os
 import sys
 
-import enums
-import utils
 import signal
 import socket
 import select
 import threading
-import protocolo
 
-from enums import *
-from config import settings
+from deposito_de_arquivo_com_replicacao.config import settings
+from deposito_de_arquivo_com_replicacao import enums, protocolo, utils
 
 
 class Server:
@@ -71,11 +68,11 @@ class Server:
             comando:
         """
         print('Comando recebido: {}'.format(comando))
-        if comando == Comando.DEPOSITAR_ARQUIVO.value:
+        if comando == enums.Comando.DEPOSITAR_ARQUIVO.value:
             self.processar_depositar_arquivo(client_socket)
-        elif comando == Comando.RECUPERAR_ARQUIVO.value:
+        elif comando == enums.Comando.RECUPERAR_ARQUIVO.value:
             self.processar_recuperar_arquivo(client_socket)
-        elif comando == Comando.ENCERRAR_CONEXAO.value:
+        elif comando == enums.Comando.ENCERRAR_CONEXAO.value:
             client_socket.shutdown(2)
             client_socket.close()
             self.clients.remove(client_socket)
@@ -161,11 +158,10 @@ class Server:
         exit()
 
     @staticmethod
-    def create():
+    def create(args):
         """
         Cria uma instância do servidor.
         """
-        args = sys.argv
         port = int(args[1]) if len(args) > 1 else int(input('Digite a porta: '))
 
         if not utils.check_port(port):
@@ -179,13 +175,13 @@ class Server:
         return server
 
 
-def main():
-    server = Server.create()
+def main(args):
+    server = Server.create(args)
     print('Aguardando conexão...')
     while True:
         server.accept()
 
 
 if __name__ == '__main__':
-    main()
+    main(sys.argv)
     exit()

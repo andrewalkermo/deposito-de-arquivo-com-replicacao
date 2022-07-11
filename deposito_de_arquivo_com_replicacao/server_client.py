@@ -1,10 +1,8 @@
-import sys
-import utils
 import signal
 import socket
 
-from config import settings
-
+from deposito_de_arquivo_com_replicacao import utils
+from deposito_de_arquivo_com_replicacao.config import settings
 
 class ServerClient:
     def __init__(self, server_client_id, ip, port):
@@ -37,8 +35,7 @@ class ServerClient:
         exit()
 
     @classmethod
-    def create(cls):
-        args = sys.argv
+    def create(cls, args):
 
         host = args[1] if len(args) > 1 else str(input('Digite o host: '))
         port = int(args[2]) if len(args) > 2 else int(input('Digite a porta: '))

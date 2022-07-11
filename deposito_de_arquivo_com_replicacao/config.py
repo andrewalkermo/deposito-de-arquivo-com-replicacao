@@ -1,5 +1,5 @@
-from dynaconf import Dynaconf
 from pathlib import Path
+from dynaconf import Dynaconf
 
 settings = Dynaconf(
     envvar_prefix="APP",

@@ -1,5 +1,4 @@
-import server
-import client
+from deposito_de_arquivo_com_replicacao import server, client
 
 
 if __name__ == '__main__':

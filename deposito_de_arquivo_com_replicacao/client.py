@@ -1,18 +1,17 @@
 import os
-import utils
+import sys
 import hashlib
-import protocolo
 
-from enums import *
 from re import match
-from config import settings
-from server_client import ServerClient
+from deposito_de_arquivo_com_replicacao.config import settings
+from deposito_de_arquivo_com_replicacao import enums, utils, protocolo
+from deposito_de_arquivo_com_replicacao.server_client import ServerClient
 
 
 class Client(ServerClient):
 
     def depositar_arquivo(self):
-        self.send(Comando.DEPOSITAR_ARQUIVO.value)
+        self.send(enums.Comando.DEPOSITAR_ARQUIVO.value)
         replicas_disponiveis = int(self.receive())
         arquivo = str(input('Digite o caminho do arquivo: '))
         print('Replicas disponíveis: {}'.format(replicas_disponiveis))
@@ -48,7 +47,7 @@ class Client(ServerClient):
         )
 
     def recuperar_arquivo(self):
-        self.send(Comando.RECUPERAR_ARQUIVO.value)
+        self.send(enums.Comando.RECUPERAR_ARQUIVO.value)
         arquivo_nome = str(input('Digite nome do arquivo: '))
 
         solicitacao = protocolo.ClienteSolicitacaoRecuperarArquivo(
@@ -58,7 +57,7 @@ class Client(ServerClient):
         self.send(solicitacao)
 
         resultado = self.receive()
-        if resultado == Retorno.ERRO.value:
+        if resultado == enums.Retorno.ERRO.value:
             print('Arquivo não encontrado')
             return
         elif match(protocolo.ServidorSolicitaEnvioArquivoRecuperadoParaCliente.pattern, resultado):
@@ -84,24 +83,24 @@ class Client(ServerClient):
             print('Arquivo recuperado com sucesso')
 
 
-def main():
-    client = Client.create()
+def main(args):
+    client = Client.create(args)
 
     comandos = {
-        '0': Comando.ENCERRAR_CONEXAO.value,
-        '1': Comando.DEPOSITAR_ARQUIVO.value,
-        '2': Comando.RECUPERAR_ARQUIVO.value,
+        '0': enums.Comando.ENCERRAR_CONEXAO.value,
+        '1': enums.Comando.DEPOSITAR_ARQUIVO.value,
+        '2': enums.Comando.RECUPERAR_ARQUIVO.value,
     }
 
     while True:
         print('0 - Encerrar conexão\n1 - Depositar arquivo\n2 - Recuperar arquivo')
         comando = str(input('Digite o comando: '))
         if comando in comandos:
-            if comandos[comando] == Comando.ENCERRAR_CONEXAO.value:
+            if comandos[comando] == enums.Comando.ENCERRAR_CONEXAO.value:
                 break
-            if comandos[comando] == Comando.DEPOSITAR_ARQUIVO.value:
+            if comandos[comando] == enums.Comando.DEPOSITAR_ARQUIVO.value:
                 client.depositar_arquivo()
-            if comandos[comando] == Comando.RECUPERAR_ARQUIVO.value:
+            if comandos[comando] == enums.Comando.RECUPERAR_ARQUIVO.value:
                 client.recuperar_arquivo()
         else:
             print('Comando inválido')
@@ -110,5 +109,5 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    main(sys.argv)
     exit()
