@@ -69,6 +69,7 @@ def enviar_arquivo_por_socket(socket_destinatario, caminho_arquivo: str, tamanho
     else:
         print('Erro ao enviar arquivo')
 
+
 def receber_arquivo_por_socket(
         socket_origem,
         caminho_arquivo: str,
