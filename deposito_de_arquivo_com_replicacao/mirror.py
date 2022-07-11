@@ -10,7 +10,6 @@ from deposito_de_arquivo_com_replicacao.server_client import ServerClient
 
 
 class Mirror(ServerClient):
-    pass
 
     def registrar_mirror(self):
         print('Registrando mirror {}'.format(self.id))

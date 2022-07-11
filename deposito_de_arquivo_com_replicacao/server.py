@@ -45,7 +45,7 @@ class Server:
     def handle_server_client(self, server_client_socket):
         while True:
             try:
-                ready_to_read, ready_to_write, in_error = select.select([server_client_socket, ], [server_client_socket, ], [], 1)
+                ready_to_read, ready_to_write, in_error = select.select([server_client_socket, ], [server_client_socket, ], [], 5)
             except select.error:
                 server_client_socket.shutdown(2)
                 server_client_socket.close()
