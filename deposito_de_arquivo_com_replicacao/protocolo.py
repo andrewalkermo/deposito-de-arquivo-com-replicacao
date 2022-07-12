@@ -208,7 +208,7 @@ class ResultadoRecebimentoDeArquivo(Protocolo):
 
 class ClienteSolicitacaoAlterarReplicas(Protocolo):
 
-    pattern = '^comando:(a)\|id_mirror:(.*)\|replicas:(.*)$'
+    pattern = '^comando:(a)\|id_cliente:(.*)\|nome_arquivo:(.*)\|qtd_replicas:(\d+)$'
 
     def __init__(self, comando, id_cliente, nome_arquivo, qtd_replicas):
         self.comando = comando

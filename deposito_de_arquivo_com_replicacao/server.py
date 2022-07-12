@@ -198,7 +198,7 @@ class Server:
             return False
         elif match(protocolo.ClienteSolicitacaoListarArquivos.pattern, comando):
             self.processar_listar_arquivos(server_client_socket, comando)
-        elif comando == enums.Comando.ALTERAR_REPLICAS.value:
+        elif match(protocolo.ClienteSolicitacaoAlterarReplicas.pattern, comando):
             self.processar_alterar_replicas(server_client_socket, comando)
         elif comando == enums.Comando.ENCERRAR_CONEXAO.value:
             server_client_socket.shutdown(2)
@@ -216,6 +216,41 @@ class Server:
                     print('Cliente recebido')
                     break
         return True
+
+    def processar_alterar_replicas(self, server_client_socket, comando: str):
+        """
+        Processa o comando de alterar replicas.
+        Args:
+            server_client_socket:
+            comando:
+        """
+        try:
+            solicitacao = protocolo.ClienteSolicitacaoAlterarReplicas.desencapsular(comando)
+            qtd_replicas = int(solicitacao.qtd_replicas)
+            qtd_atual = 0
+            for arquivo in self.database[solicitacao.id_cliente]:
+                if arquivo['nome_arquivo'] == solicitacao.nome_arquivo:
+                    qtd_atual = len(arquivo['replicas'])
+                    break
+            if qtd_atual == 0:
+                print('Arquivo não encontrado')
+                return
+            if qtd_atual > qtd_replicas:
+                for i in range(qtd_atual - qtd_replicas):
+                    for arquivo in self.database[solicitacao.id_cliente]:
+                        if arquivo['nome_arquivo'] == solicitacao.nome_arquivo:
+                            arquivo['replicas'].pop()
+                            break
+            elif qtd_atual < qtd_replicas:
+                for i in range(qtd_replicas - qtd_atual):
+                    for arquivo in self.database[solicitacao.id_cliente]:
+                        if arquivo['nome_arquivo'] == solicitacao.nome_arquivo:
+                            arquivo['replicas'].append('')
+                            break
+            print('Replicas alteradas')
+        except Exception as e:
+            print('Erro ao alterar replicas: {}'.format(e))
+
 
     def processar_listar_arquivos(self, server_client_socket, solicitacao: str):
         """
