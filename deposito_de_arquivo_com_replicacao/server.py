@@ -251,7 +251,6 @@ class Server:
         except Exception as e:
             print('Erro ao alterar replicas: {}'.format(e))
 
-
     def processar_listar_arquivos(self, server_client_socket, solicitacao: str):
         """
         Processa o comando de listar arquivos.
@@ -265,18 +264,14 @@ class Server:
             if not os.path.exists(pasta):
                 server_client_socket.send(enums.Retorno.ERRO.value.encode())
                 return
-            os.chdir(pasta)
-            arquivos = os.listdir()
-            arquivos_listados = []
-            for arquivo in arquivos:
-                if os.path.isfile(arquivo):
-                    arquivos_listados.append(arquivo.split('.', 1)[1])
+            from os import listdir
+            from os.path import isfile, join
+            arquivos_listados = [f.split('.', 1)[1] for f in listdir(pasta) if isfile(join(pasta, f))]
             arquivos_listados.sort()
             server_client_socket.send(''.join(arquivos_listados).encode())
         except Exception as e:
             logging.exception(e)
             return False
-
 
     def processar_depositar_arquivo(self, server_client_socket):
         """
