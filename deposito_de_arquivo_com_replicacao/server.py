@@ -54,7 +54,9 @@ class Server:
             if len(ready_to_read) > 0:
                 message = server_client_socket.recv(settings.get('geral.tamanho_buffer_padrao')).decode()
                 if message:
-                    self.processa_comando_recebido(server_client_socket, message)
+                    continuar_escutando = self.processa_comando_recebido(server_client_socket, message)
+                    if not continuar_escutando:
+                        return
                 else:
                     break
             if len(ready_to_write) > 0:
@@ -87,7 +89,7 @@ class Server:
             self.processar_recuperar_arquivo(server_client_socket)
         elif match(protocolo.SolicitacaoRegistrarMirror.pattern, comando):
             self.processar_registrar_mirror(server_client_socket, comando)
-
+            return False
         elif comando == enums.Comando.ENCERRAR_CONEXAO.value:
             server_client_socket.shutdown(2)
             server_client_socket.close()
@@ -103,6 +105,7 @@ class Server:
                 if client_socket == server_client_socket:
                     print('Cliente recebido')
                     break
+        return True
 
     def processar_depositar_arquivo(self, server_client_socket):
         """
