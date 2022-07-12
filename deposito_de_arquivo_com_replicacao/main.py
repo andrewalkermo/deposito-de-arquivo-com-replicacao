@@ -1,4 +1,4 @@
-from deposito_de_arquivo_com_replicacao import server, client
+from deposito_de_arquivo_com_replicacao import server, client, mirror
 
 
 if __name__ == '__main__':
@@ -9,7 +9,7 @@ if __name__ == '__main__':
     elif opcao == 2:
         client.main([])
     elif opcao == 3:
-        client.main([])
+        mirror.main([])
     else:
         print('Opção inválida')
         exit()
