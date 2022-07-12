@@ -204,3 +204,57 @@ class ResultadoRecebimentoDeArquivo(Protocolo):
             hash_arquivo=hash_arquivo,
             resultado=resultado
         )
+
+
+class ClienteSolicitacaoAlterarReplicas(Protocolo):
+
+    pattern = '^comando:(a)\|id_mirror:(.*)\|replicas:(.*)$'
+
+    def __init__(self, comando, id_cliente, nome_arquivo, qtd_replicas):
+        self.comando = comando
+        self.id_cliente = id_cliente
+        self.nome_arquivo = nome_arquivo
+        self.qtd_replicas = qtd_replicas
+
+    def encapsular(self):
+        return "comando:{}|id_cliente:{}|nome_arquivo:{}|qtd_replicas:{}".format(
+            self.comando, self.id_cliente, self.nome_arquivo, self.qtd_replicas
+        )
+
+    @staticmethod
+    def desencapsular(mensagem):
+        comando, id_cliente, nome_arquivo, qtd_replicas = match(
+            ClienteSolicitacaoAlterarReplicas.pattern,
+            mensagem
+        ).groups()
+        return ClienteSolicitacaoAlterarReplicas(
+            comando=comando,
+            id_cliente=id_cliente,
+            nome_arquivo=nome_arquivo,
+            qtd_replicas=qtd_replicas
+        )
+
+
+class ClienteSolicitacaoListarArquivos(Protocolo):
+
+    pattern = '^comando:(l)\|id_cliente:(.*)$'
+
+    def __init__(self, comando, id_cliente):
+        self.comando = comando
+        self.id_cliente = id_cliente
+
+    def encapsular(self):
+        return "comando:{}|id_cliente:{}".format(
+            self.comando, self.id_cliente
+        )
+
+    @staticmethod
+    def desencapsular(mensagem):
+        comando, id_cliente = match(
+            ClienteSolicitacaoListarArquivos.pattern,
+            mensagem
+        ).groups()
+        return ClienteSolicitacaoListarArquivos(
+            comando=comando,
+            id_cliente=id_cliente
+        )

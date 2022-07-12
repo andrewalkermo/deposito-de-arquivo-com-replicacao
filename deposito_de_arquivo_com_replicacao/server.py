@@ -196,6 +196,10 @@ class Server:
         elif match(protocolo.SolicitacaoRegistrarMirror.pattern, comando):
             self.processar_registrar_mirror(server_client_socket, comando)
             return False
+        elif match(protocolo.ClienteSolicitacaoListarArquivos.pattern, comando):
+            self.processar_listar_arquivos(server_client_socket, comando)
+        elif comando == enums.Comando.ALTERAR_REPLICAS.value:
+            self.processar_alterar_replicas(server_client_socket, comando)
         elif comando == enums.Comando.ENCERRAR_CONEXAO.value:
             server_client_socket.shutdown(2)
             server_client_socket.close()
@@ -212,6 +216,32 @@ class Server:
                     print('Cliente recebido')
                     break
         return True
+
+    def processar_listar_arquivos(self, server_client_socket, solicitacao: str):
+        """
+        Processa o comando de listar arquivos.
+        Args:
+            server_client_socket:
+            solicitacao:
+        """
+        try:
+            solicitacao = protocolo.ClienteSolicitacaoListarArquivos.desencapsular(solicitacao)
+            pasta = os.path.join(settings.get('server.pasta_deposito'), solicitacao.id_cliente)
+            if not os.path.exists(pasta):
+                server_client_socket.send(enums.Retorno.ERRO.value.encode())
+                return
+            os.chdir(pasta)
+            arquivos = os.listdir()
+            arquivos_listados = []
+            for arquivo in arquivos:
+                if os.path.isfile(arquivo):
+                    arquivos_listados.append(arquivo.split('.', 1)[1])
+            arquivos_listados.sort()
+            server_client_socket.send(''.join(arquivos_listados).encode())
+        except Exception as e:
+            logging.exception(e)
+            return False
+
 
     def processar_depositar_arquivo(self, server_client_socket):
         """

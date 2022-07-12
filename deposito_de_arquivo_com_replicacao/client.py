@@ -78,12 +78,39 @@ class Client(ServerClient):
                 hash_arquivo=dados_arquivo_recuperado.hash_arquivo
             )
 
+    def listar_arquivos(self):
+        solicitacao = protocolo.ClienteSolicitacaoListarArquivos(
+            comando=enums.Comando.LISTAR_ARQUIVOS.value,
+            id_cliente=self.id
+        ).encapsular()
+        self.send(solicitacao)
+        resultado = self.receive()
+        if resultado == enums.Retorno.ERRO.value:
+            print('Não há arquivos disponíveis')
+            return
+        else:
+            print('Arquivos disponíveis:\n')
+            print(resultado.replace(',', '\n'))
+            print('\n')
+
+    def alterar_replicas(self):
+        arquivo_nome = str(input('Digite nome do arquivo: '))
+        replicas = int(input('Digite quantas replicas: '))
+        solicitacao = protocolo.ClienteSolicitacaoAlterarReplicas(
+            comando=enums.Comando.ALTERAR_REPLICAS.value,
+            id_cliente=self.id,
+            nome_arquivo=arquivo_nome,
+            qtd_replicas=replicas
+        ).encapsular()
+        self.send(solicitacao)
+        print('Replicas alteradas com sucesso')
+
 
 def main(args):
     client = Client.create(args)
 
     while True:
-        print('d - Depositar arquivo\nr - Recuperar arquivo\ne - Encerrar conexão')
+        print('d - Depositar arquivo\nr - Recuperar arquivo\nl - Listar arquivos\na - Alterar replicas\ns - Sair')
         comando = str(input('Digite o comando: '))
 
         if comando == enums.Comando.ENCERRAR_CONEXAO.value:
@@ -92,6 +119,10 @@ def main(args):
             client.depositar_arquivo()
         elif comando == enums.Comando.RECUPERAR_ARQUIVO.value:
             client.recuperar_arquivo()
+        elif comando == enums.Comando.ALTERAR_REPLICAS.value:
+            client.alterar_replicas()
+        elif comando == enums.Comando.LISTAR_ARQUIVOS.value:
+            client.listar_arquivos()
         else:
             print('Comando inválido')
 
