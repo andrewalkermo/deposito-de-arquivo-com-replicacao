@@ -1,3 +1,4 @@
+import logging
 import os
 import sys
 import json
@@ -37,6 +38,7 @@ class Server:
         """
         Salva o banco de dados.
         """
+        print('Salvando banco de dados...')
         with open(settings.get('server.database'), 'w') as database:
             json.dump(self.database, database)
 
@@ -45,7 +47,82 @@ class Server:
         starttime = time.time()
         while True:
             self.salvar_database()
-            time.sleep(60.0 - ((time.time() - starttime) % 60.0))
+            self.verificar_integridade_arquivos()
+            time.sleep(3)
+
+    def verificar_integridade_arquivos(self):
+        """
+        Verifica a integridade dos arquivos.
+        """
+        print('Verificando integridade dos arquivos...')
+        for id_cliente in self.database:
+            for arquivo in self.database[id_cliente]:
+                path = os.path.join(
+                    settings.get('server.pasta_deposito'),
+                    id_cliente,
+                    "{}.{}".format(arquivo['hash_arquivo'], arquivo['nome_arquivo'])
+                )
+                if not os.path.exists(path) or os.path.getsize(path) != arquivo['tamanho_arquivo']:
+                    print('Arquivo {} faltando no servidor'.format(path))
+                    for mirror in arquivo['replicas']:
+                        resultado = self.recuperar_arquivo_da_mirror(
+                            id_cliente=id_cliente,
+                            hash_arquivo=arquivo['hash_arquivo'],
+                            nome_arquivo=arquivo['nome_arquivo'],
+                            tamanho_arquivo=int(arquivo['tamanho_arquivo']),
+                            id_mirror=mirror
+                        )
+                        if resultado:
+                            print('Arquivo {} recuperado da mirror {}'.format(path, mirror))
+                            break
+                        else:
+                            print('Erro ao recuperar arquivo {} da mirror {}'.format(path, mirror))
+
+    def recuperar_arquivo_da_mirror(self, id_mirror, id_cliente, hash_arquivo, nome_arquivo, tamanho_arquivo):
+        """
+        Recupera um arquivo da mirror.
+        Args:
+            id_mirror:
+            id_cliente:
+            hash_arquivo:
+            nome_arquivo:
+            tamanho_arquivo:
+        """
+        for mirror in self.mirrors:
+            if mirror['id_mirror'] == id_mirror:
+                try:
+                    mirror['socket'].send(protocolo.ServidorSolicitarRecuperacaoArquivoMirror(
+                        comando=enums.Comando.RECUPERAR_ARQUIVO.value,
+                        id_cliente=id_cliente,
+                        hash_arquivo=hash_arquivo,
+                        nome_arquivo=nome_arquivo,
+                        tamanho_arquivo=tamanho_arquivo
+                    ).encapsular().encode())
+
+                    resultado = mirror['socket'].recv(settings.get('geral.tamanho_buffer_padrao')).decode()
+                    if resultado == enums.Retorno.ERRO.value:
+                        return False
+
+                    caminho_arquivo = os.path.join(
+                        settings.get('server.pasta_deposito'),
+                        id_cliente,
+                        "{}.{}".format(hash_arquivo, nome_arquivo)
+                    )
+                    if not os.path.exists(os.path.dirname(caminho_arquivo)):
+                        os.makedirs(os.path.dirname(caminho_arquivo))
+
+                    resultado = utils.receber_arquivo_por_socket(
+                        socket_origem=mirror['socket'],
+                        caminho_arquivo=caminho_arquivo,
+                        tamanho_arquivo=tamanho_arquivo,
+                        hash_arquivo=hash_arquivo,
+                    )
+                    return resultado
+
+                except Exception as e:
+                    logging.exception(e)
+                    return False
+        return False
 
     def start(self):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

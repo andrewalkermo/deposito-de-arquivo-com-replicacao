@@ -151,6 +151,36 @@ class ServidorsolicitarReplicarArquivo(Protocolo):
         )
 
 
+class ServidorSolicitarRecuperacaoArquivoMirror(Protocolo):
+    pattern = '^comando:([a-z]{1})\|id_cliente:(.*)\|tamanho_arquivo:(\d+)\|hash_arquivo:(.*)\|nome_arquivo:(.*)$'
+
+    def __init__(self, comando, id_cliente, tamanho_arquivo, hash_arquivo, nome_arquivo):
+        self.comando = comando
+        self.id_cliente = id_cliente
+        self.tamanho_arquivo = tamanho_arquivo
+        self.hash_arquivo = hash_arquivo
+        self.nome_arquivo = nome_arquivo
+
+    def encapsular(self):
+        return "comando:{}|id_cliente:{}|tamanho_arquivo:{}|hash_arquivo:{}|nome_arquivo:{}".format(
+            self.comando, self.id_cliente, self.tamanho_arquivo, self.hash_arquivo, self.nome_arquivo
+        )
+
+    @staticmethod
+    def desencapsular(mensagem):
+        comando, id_cliente, tamanho_arquivo, hash_arquivo, nome_arquivo = match(
+            ServidorSolicitarRecuperacaoArquivoMirror.pattern,
+            mensagem
+        ).groups()
+        return ServidorSolicitarRecuperacaoArquivoMirror(
+            comando=comando,
+            id_cliente=id_cliente,
+            tamanho_arquivo=tamanho_arquivo,
+            hash_arquivo=hash_arquivo,
+            nome_arquivo=nome_arquivo
+        )
+
+
 class ResultadoRecebimentoDeArquivo(Protocolo):
 
     pattern = '^hash_arquivo:(.*)\|resultado:(\d+)$'
