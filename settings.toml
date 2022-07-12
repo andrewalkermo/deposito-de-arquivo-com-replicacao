@@ -4,6 +4,7 @@ tamanho_buffer_arquivo=8192
 
 [server]
 pasta_deposito='../storage'
+database='../storage/database.json'
 
 
 [client]

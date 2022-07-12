@@ -17,6 +17,35 @@ class Server:
         self.socket = None
         self.clients = []
         self.mirrors = []
+        self.database = {}
+        self.carregar_database()
+
+    def carregar_database(self):
+        """
+        Carrega o banco de dados.
+        """
+        if os.path.exists(settings.get('server.database')):
+            with open(settings.get('server.database'), 'r') as database:
+                self.database = json.load(database)
+        else:
+            self.database = {}
+            with open(settings.get('server.database'), 'w') as database:
+                json.dump(self.database, database)
+        threading.Thread(target=self.atualizar_database).start()
+
+    def salvar_database(self):
+        """
+        Salva o banco de dados.
+        """
+        with open(settings.get('server.database'), 'w') as database:
+            json.dump(self.database, database)
+
+    def atualizar_database(self):
+        import time
+        starttime = time.time()
+        while True:
+            self.salvar_database()
+            time.sleep(60.0 - ((time.time() - starttime) % 60.0))
 
     def start(self):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -36,7 +65,6 @@ class Server:
             server_client_socket.shutdown(2)
             server_client_socket.close()
         for mirror in self.mirrors:
-            mirror['socket'].shutdown(2)
             mirror['socket'].close()
         self.socket.close()
 
@@ -137,6 +165,17 @@ class Server:
             tamanho_arquivo=arquivo_tamanho,
             hash_arquivo=solicitacao.hash_arquivo
         )
+
+        if solicitacao.id_cliente not in self.database:
+            self.database[solicitacao.id_cliente] = []
+
+        self.database[solicitacao.id_cliente].append({
+            'nome_arquivo': solicitacao.nome_arquivo,
+            'tamanho_arquivo': solicitacao.tamanho_arquivo,
+            'hash_arquivo': solicitacao.hash_arquivo,
+            'replicas': []
+        })
+
         if resultado:
             # envia para as replicas em threads
             threading.Thread(target=self.enviar_arquivo_para_replicas, kwargs=({
@@ -173,6 +212,11 @@ class Server:
                 )
                 if replicado:
                     replicados += 1
+
+                    for file in self.database[id_cliente]:
+                        if file['hash_arquivo'] == hash_arquivo:
+                            file['replicas'].append(mirror['id_mirror'])
+                            break
         return replicados
 
     def enviar_arquivo_para_mirror(self, mirror, nome_arquivo, caminho_arquivo, tamanho_arquivo, hash_arquivo, id_cliente):
