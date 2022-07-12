@@ -48,7 +48,7 @@ class Server:
         while True:
             self.salvar_database()
             self.verificar_integridade_arquivos()
-            time.sleep(3)
+            time.sleep(60.0 - ((time.time() - starttime) % 60.0))
 
     def verificar_integridade_arquivos(self):
         """
