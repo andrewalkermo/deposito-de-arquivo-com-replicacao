@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 import signal
 import socket
 import select
@@ -187,23 +188,30 @@ class Server:
         """
         print('Enviando arquivo para o mirror {}'.format(mirror['id_mirror']))
         mirror_socket = mirror['socket']
-        mirror_socket.send(protocolo.ServidorsolicitarReplicarArquivo(
-            id_cliente=id_cliente,
-            nome_arquivo=nome_arquivo,
-            tamanho_arquivo=tamanho_arquivo,
-            hash_arquivo=hash_arquivo
-        ).encapsular().encode())
+        # verifica se o mirror está online
+        try:
+            mirror_socket.send(protocolo.ServidorsolicitarReplicarArquivo(
+                id_cliente=id_cliente,
+                nome_arquivo=nome_arquivo,
+                tamanho_arquivo=tamanho_arquivo,
+                hash_arquivo=hash_arquivo
+            ).encapsular().encode())
 
-        resultado = mirror_socket.recv(settings.get('geral.tamanho_buffer_padrao')).decode()
-        if resultado == enums.Retorno.ERRO.value:
-            print('Erro ao replicar arquivo para o mirror')
+            resultado = mirror_socket.recv(settings.get('geral.tamanho_buffer_padrao')).decode()
+            if resultado == enums.Retorno.ERRO.value:
+                print('Erro ao replicar arquivo para o mirror')
+                return False
+
+            return utils.enviar_arquivo_por_socket(
+                socket_destinatario=mirror_socket,
+                caminho_arquivo=caminho_arquivo,
+                tamanho_arquivo=tamanho_arquivo
+            )
+
+        except:
+            print('Mirror {} offline'.format(mirror['id_mirror']))
+            self.mirrors.remove(mirror)
             return False
-
-        return utils.enviar_arquivo_por_socket(
-            socket_destinatario=mirror_socket,
-            caminho_arquivo=caminho_arquivo,
-            tamanho_arquivo=tamanho_arquivo
-        )
 
     def processar_recuperar_arquivo(self, server_client_socket):
         """
