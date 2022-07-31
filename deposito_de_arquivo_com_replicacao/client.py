@@ -1,44 +1,17 @@
 import os
 import sys
-import signal
-import socket
 import hashlib
-import protocolo
-import utils
 
-from enums import *
 from re import match
-from config import settings
+from deposito_de_arquivo_com_replicacao.config import settings
+from deposito_de_arquivo_com_replicacao import enums, utils, protocolo
+from deposito_de_arquivo_com_replicacao.server_client import ServerClient
 
 
-class Client:
-    def __init__(self, id, ip, port):
-        self.id = id
-        self.ip = ip
-        self.port = port
-        self.socket = None
-        self.connected = False
-
-    def connect(self):
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.connect((self.ip, self.port))
-        self.connected = True
-
-    def send(self, message):
-        # check if has encode
-        if isinstance(message, str):
-            message = message.encode()
-        self.socket.send(message)
-
-    def receive(self):
-        return self.socket.recv(settings.get('geral.tamanho_buffer_padrao')).decode()
-
-    def close(self):
-        self.socket.close()
-        self.connected = False
+class Client(ServerClient):
 
     def depositar_arquivo(self):
-        self.send(Comando.DEPOSITAR_ARQUIVO.value)
+        self.send(enums.Comando.DEPOSITAR_ARQUIVO.value)
         replicas_disponiveis = int(self.receive())
         arquivo = str(input('Digite o caminho do arquivo: '))
         print('Replicas disponíveis: {}'.format(replicas_disponiveis))
@@ -69,12 +42,11 @@ class Client:
         utils.enviar_arquivo_por_socket(
             socket_destinatario=self.socket,
             tamanho_arquivo=arquivo_tamanho,
-            tamanho_fatia=settings.get('geral.tamanho_buffer_arquivo'),
             caminho_arquivo=arquivo
         )
 
     def recuperar_arquivo(self):
-        self.send(Comando.RECUPERAR_ARQUIVO.value)
+        self.send(enums.Comando.RECUPERAR_ARQUIVO.value)
         arquivo_nome = str(input('Digite nome do arquivo: '))
 
         solicitacao = protocolo.ClienteSolicitacaoRecuperarArquivo(
@@ -84,7 +56,7 @@ class Client:
         self.send(solicitacao)
 
         resultado = self.receive()
-        if resultado == Retorno.ERRO.value:
+        if resultado == enums.Retorno.ERRO.value:
             print('Arquivo não encontrado')
             return
         elif match(protocolo.ServidorSolicitaEnvioArquivoRecuperadoParaCliente.pattern, resultado):
@@ -102,53 +74,55 @@ class Client:
             utils.receber_arquivo_por_socket(
                 socket_origem=self.socket,
                 tamanho_arquivo=tamanho_arquivo,
-                tamanho_fatia=settings.get('geral.tamanho_buffer_arquivo'),
                 caminho_arquivo=caminho_arquivo,
                 hash_arquivo=dados_arquivo_recuperado.hash_arquivo
             )
 
-            print('Arquivo recuperado com sucesso')
+    def listar_arquivos(self):
+        solicitacao = protocolo.ClienteSolicitacaoListarArquivos(
+            comando=enums.Comando.LISTAR_ARQUIVOS.value,
+            id_cliente=self.id
+        ).encapsular()
+        self.send(solicitacao)
+        resultado = self.receive()
+        if resultado == enums.Retorno.ERRO.value:
+            print('Não há arquivos disponíveis')
+            return
+        else:
+            print('Arquivos disponíveis:\n')
+            print(resultado.replace(',', '\n'))
+            print('\n')
 
-def signal_handler(client):
-    print('Encerrando...')
-    client.close()
-    exit()
+    def alterar_replicas(self):
+        arquivo_nome = str(input('Digite nome do arquivo: '))
+        replicas = int(input('Digite quantas replicas: '))
+        solicitacao = protocolo.ClienteSolicitacaoAlterarReplicas(
+            comando=enums.Comando.ALTERAR_REPLICAS.value,
+            id_cliente=self.id,
+            nome_arquivo=arquivo_nome,
+            qtd_replicas=replicas
+        ).encapsular()
+        self.send(solicitacao)
+        print('Replicas alteradas com sucesso')
 
 
-def main():
-    args = sys.argv
-
-    host = args[1] if len(args) > 1 else str(input('Digite o host: '))
-    port = int(args[2]) if len(args) > 2 else int(input('Digite a porta: '))
-
-    client_id = str(input('Digite o id, pode deixar em branco para criar uma nova sessão: '))
-
-    if client_id == '':
-        client_id = utils.generate_uuid()
-        print('Seu id: {}'.format(client_id))
-        print('Guarde o id para futuras sessões')
-
-    client = Client(client_id, host, port)
-    client.connect()
-
-    signal.signal(signal.SIGINT, lambda signum, frame: signal_handler(client))
-
-    comandos = {
-        '0': Comando.ENCERRAR_CONEXAO.value,
-        '1': Comando.DEPOSITAR_ARQUIVO.value,
-        '2': Comando.RECUPERAR_ARQUIVO.value,
-    }
+def main(args):
+    client = Client.create(args)
 
     while True:
-        print('0 - Encerrar conexão\n1 - Depositar arquivo\n2 - Recuperar arquivo')
+        print('d - Depositar arquivo\nr - Recuperar arquivo\nl - Listar arquivos\na - Alterar replicas\ns - Sair')
         comando = str(input('Digite o comando: '))
-        if comando in comandos:
-            if comandos[comando] == Comando.ENCERRAR_CONEXAO.value:
-                break
-            if comandos[comando] == Comando.DEPOSITAR_ARQUIVO.value:
-                client.depositar_arquivo()
-            if comandos[comando] == Comando.RECUPERAR_ARQUIVO.value:
-                client.recuperar_arquivo()
+
+        if comando == enums.Comando.ENCERRAR_CONEXAO.value:
+            break
+        elif comando == enums.Comando.DEPOSITAR_ARQUIVO.value:
+            client.depositar_arquivo()
+        elif comando == enums.Comando.RECUPERAR_ARQUIVO.value:
+            client.recuperar_arquivo()
+        elif comando == enums.Comando.ALTERAR_REPLICAS.value:
+            client.alterar_replicas()
+        elif comando == enums.Comando.LISTAR_ARQUIVOS.value:
+            client.listar_arquivos()
         else:
             print('Comando inválido')
 
@@ -156,5 +130,5 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    main(sys.argv)
     exit()

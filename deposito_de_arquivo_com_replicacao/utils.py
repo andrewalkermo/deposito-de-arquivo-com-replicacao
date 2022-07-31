@@ -1,9 +1,10 @@
 import os
-import enums
 import socket
 import hashlib
 
 from uuid import uuid4, UUID
+from deposito_de_arquivo_com_replicacao.config import settings
+from deposito_de_arquivo_com_replicacao import enums, protocolo
 
 
 def check_port(port: int) -> bool:
@@ -38,19 +39,18 @@ def is_valid_uuid(uuid_to_test, version=4):
     return str(uuid_obj) == uuid_to_test
 
 
-def enviar_arquivo_por_socket(socket_destinatario, caminho_arquivo: str, tamanho_arquivo: int, tamanho_fatia: int):
+def enviar_arquivo_por_socket(socket_destinatario, caminho_arquivo: str, tamanho_arquivo: int):
     """
     Envia um arquivo por socket.
     Args:
         socket_destinatario:
         caminho_arquivo: str
         tamanho_arquivo: int
-        tamanho_fatia: int
     """
+    tamanho_fatia = settings.get('geral.tamanho_buffer_arquivo')
+
     partes = int(tamanho_arquivo / tamanho_fatia)
     resto = tamanho_arquivo - (partes * tamanho_fatia)
-    print('partes: {}'.format(partes))
-    print('resto: {}'.format(resto))
 
     if resto > 0:
         partes += 1
@@ -63,20 +63,18 @@ def enviar_arquivo_por_socket(socket_destinatario, caminho_arquivo: str, tamanho
                 parte = f.read(tamanho_fatia)
             socket_destinatario.send(parte)
 
-    resultado = socket_destinatario.recv(tamanho_fatia).decode()
-    if resultado == enums.Retorno.OK.value:
+    resultado = protocolo.ResultadoRecebimentoDeArquivo.desencapsular(
+        socket_destinatario.recv(settings.get('geral.tamanho_buffer_padrao')).decode()
+    )
+    if resultado.resultado == enums.Retorno.OK.value:
         print('Arquivo enviado com sucesso')
+        return True
     else:
         print('Erro ao enviar arquivo')
+        return False
 
 
-def receber_arquivo_por_socket(
-        socket_origem,
-        caminho_arquivo: str,
-        hash_arquivo: str,
-        tamanho_arquivo: int,
-        tamanho_fatia: int
-):
+def receber_arquivo_por_socket(socket_origem, caminho_arquivo: str, hash_arquivo: str, tamanho_arquivo: int):
     """
     Recebe um arquivo por socket.
     Args:
@@ -84,8 +82,9 @@ def receber_arquivo_por_socket(
         caminho_arquivo: str
         hash_arquivo: str
         tamanho_arquivo: int
-        tamanho_fatia: int
     """
+
+    tamanho_fatia = settings.get('geral.tamanho_buffer_arquivo')
 
     sha256_hash = hashlib.sha256()
     arquivo_bytes = open(caminho_arquivo, 'wb')
@@ -108,8 +107,20 @@ def receber_arquivo_por_socket(
 
     if sha256_hash.hexdigest() == hash_arquivo:
         print('Arquivo recebido com sucesso!')
-        socket_origem.send(enums.Retorno.OK.value.encode())
+        socket_origem.send(
+            protocolo.ResultadoRecebimentoDeArquivo(
+                hash_arquivo=hash_arquivo,
+                resultado=enums.Retorno.OK.value
+            ).encapsular().encode()
+        )
+        return True
     else:
-        socket_origem.send(enums.Retorno.ERRO.value.encode())
+        socket_origem.send(
+            protocolo.ResultadoRecebimentoDeArquivo(
+                hash_arquivo=hash_arquivo,
+                resultado=enums.Retorno.ERRO.value
+            ).encapsular().encode()
+        )
         print('Erro ao receber arquivo!')
         os.remove(caminho_arquivo)
+        return False
